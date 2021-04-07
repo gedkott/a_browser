@@ -163,7 +163,7 @@ fn request<'surl, 'resp>(url: &'surl str) -> Response {
     }
 }
 
-fn print_body(body: &Body) {
+fn show(body: &Body) {
     let mut in_angle = false;
     body.body_buffer.chars().for_each(|c| {
         if c == '<' {
@@ -178,6 +178,12 @@ fn print_body(body: &Body) {
     });
 }
 
+fn load(url: &str) {
+    let response = request(url);
+
+    show(&response.get_body());
+}
+
 fn main() {
     let args = env::args().collect::<Vec<String>>();
     let url = if args.len() == 2 {
@@ -185,8 +191,5 @@ fn main() {
     } else {
         "http://example.org/index.html"
     };
-
-    let response = request(url);
-
-    print_body(&response.get_body());
+    load(url);
 }
