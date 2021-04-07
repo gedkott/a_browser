@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 use std::env;
-use std::io::prelude::*;
+use std::io::{Read, Write};
 use std::net::TcpStream;
+use std::sync::Arc;
+use webpki;
+use webpki_roots;
 
 #[derive(Debug)]
 struct Url<'surl> {
@@ -98,14 +101,23 @@ fn get_host(surl: &str) -> &str {
 
 impl<'surl> Url<'surl> {
     fn new(surl: &'surl str) -> Option<Self> {
-        let scheme = &surl[0..7];
-        let host = get_host(&surl[7..]);
-        let path = &surl[7 + host.len()..];
-        if scheme == "http://" {
-            Some(Url { scheme, host, path })
+        let s_spot = surl.chars().nth(4);
+        let scheme_end_index = if s_spot == Some('s') {
+            8
+        } else if s_spot == Some(':') {
+            7
         } else {
-            None
-        }
+            return None;
+        };
+        let scheme = &surl[0..scheme_end_index];
+        let host_and_path = &surl[scheme_end_index..];
+
+        let host_end_index = host_and_path.find("/").unwrap_or(host_and_path.len());
+
+        let host = &host_and_path[0..host_end_index];
+        let path = &host_and_path[host.len()..];
+        let path = if path == "" { "/" } else { path };
+        Some(Url { scheme, host, path })
     }
 }
 
@@ -116,15 +128,39 @@ struct Body<'resp> {
 
 fn request<'surl, 'resp>(url: &'surl str) -> Response {
     let my_url = Url::new(url).unwrap();
-    let http_string =
-        String::from("GET /index.html HTTP/1.0\r\n") + &format!("Host: {}\r\n\r\n", my_url.host);
+    let http_string = format!(
+        "GET {} HTTP/1.0\r\nHost: {}\r\n\r\n",
+        my_url.path, my_url.host
+    );
 
-    let mut stream = TcpStream::connect((my_url.host, 80)).unwrap();
-    let _ = stream.write(http_string.as_bytes()).unwrap();
+    if my_url.scheme == "https://" {
+        let mut config = rustls::ClientConfig::new();
+        config
+            .root_store
+            .add_server_trust_anchors(&webpki_roots::TLS_SERVER_ROOTS);
 
-    let mut response_buffer = String::new();
-    let _ = stream.read_to_string(&mut response_buffer).unwrap();
-    Response::new(response_buffer)
+        let rc_config = Arc::new(config);
+        let dns_name = webpki::DNSNameRef::try_from_ascii_str(my_url.host).unwrap();
+        let mut sess = rustls::ClientSession::new(&rc_config, dns_name);
+        let mut stream = TcpStream::connect((my_url.host, 443)).unwrap();
+        let mut tls = rustls::Stream::new(&mut sess, &mut stream);
+
+        let _ = tls.write(http_string.as_bytes()).unwrap();
+
+        let mut response_buffer = Vec::new();
+        tls.read_to_end(&mut response_buffer).unwrap();
+
+        // println!("{:?}", String::from_utf8_lossy(&response_buffer));
+
+        Response::new(String::from_utf8_lossy(&response_buffer).to_string())
+    } else {
+        let mut stream = TcpStream::connect((my_url.host, 80)).unwrap();
+        let _ = stream.write(http_string.as_bytes()).unwrap();
+
+        let mut response_buffer = String::new();
+        let _ = stream.read_to_string(&mut response_buffer).unwrap();
+        Response::new(response_buffer)
+    }
 }
 
 fn print_body(body: &Body) {
