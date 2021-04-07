@@ -1,27 +1,15 @@
 //! This example showcases an interactive `Canvas` for drawing Bézier curves.
-use iced::{button, Align, Button, Column, Element, Length, Sandbox, Settings, Text};
-use iced::{
-    canvas::event::{self, Event},
-    canvas::{self, Canvas, Cursor, Frame, Geometry, Path, Stroke},
-    mouse, Element, Length, Point, Rectangle,
-};
-
-pub fn main() -> iced::Result {
-    Example::run(Settings {
-        antialiasing: true,
-        ..Settings::default()
-    })
-}
-
+use iced::{button, Align, Button, Column, Element, Length, Sandbox, Text,};
+    
 #[derive(Default)]
-struct Example {
+pub struct Example {
     bezier: bezier::State,
     curves: Vec<bezier::Curve>,
     button_state: button::State,
 }
 
 #[derive(Debug, Clone, Copy)]
-enum Message {
+pub enum Message {
     AddCurve(bezier::Curve),
     Clear,
 }
