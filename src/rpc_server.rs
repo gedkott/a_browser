@@ -1,42 +1,41 @@
+use crate::layout;
 use crate::lex;
 use crate::response;
 use serde::{Deserialize, Serialize};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use xml_rpc::{Fault, Server};
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct UrlParams {
     pub url: String,
 }
 
-type Layout = Vec<(i32, i32, char)>;
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct RelayoutParams {
+    pub width: i32,
+    pub height: i32,
+    pub body: String,
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct ResponseBuffer {
-    pub layout: Layout,
-}
-
-fn layout(body: &str) -> Layout {
-    let mut display_list = vec![];
-    let hstep = 13;
-    let vstep = 18;
-    let width = 800;
-    let height = 600;
-    let mut cursor_x = 100;
-    let mut cursor_y = 100;
-    body.chars().for_each(|c| {
-        if cursor_x >= width - hstep {
-            cursor_y = cursor_y + vstep;
-            cursor_x = hstep;
-        }
-        cursor_x = cursor_x + hstep;
-        display_list.push((cursor_x, cursor_y, c))
-    });
-    display_list
+    pub layout: layout::Layout,
+    pub body: String,
 }
 
 fn load_url(url_params: UrlParams) -> Result<ResponseBuffer, Fault> {
+    let resp = response::load(&url_params.url);
+    let body = resp.get_body();
     Ok(ResponseBuffer {
-        layout: layout(&lex::lex(&response::load(&url_params.url).get_body())),
+        layout: layout::layout(&lex::lex(&body.body_buffer), 800),
+        body: body.body_buffer.to_string(),
+    })
+}
+
+fn relayout(relayout_params: RelayoutParams) -> Result<ResponseBuffer, Fault> {
+    Ok(ResponseBuffer {
+        layout: layout::layout(&lex::lex(&relayout_params.body), relayout_params.width),
+        body: relayout_params.body.to_string(),
     })
 }
 
@@ -45,6 +44,7 @@ pub fn new_server() {
     let mut server = Server::new();
 
     server.register_simple("load_url", &load_url);
+    server.register_simple("relayout", &relayout);
 
     let bound_server = server.bind(&socket).unwrap();
 

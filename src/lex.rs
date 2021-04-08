@@ -1,11 +1,9 @@
-use crate::response;
-
-pub fn lex(body: &response::Body) -> String {
+pub fn lex(body: &str) -> String {
     let mut in_angle = false;
     let mut in_body = false;
     let mut tag = "".to_string();
     let mut text_only = "".to_string();
-    body.body_buffer.chars().for_each(|c| {
+    body.chars().for_each(|c| {
         if c == '<' {
             in_angle = true;
         } else if c == '>' {
