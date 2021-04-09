@@ -130,7 +130,7 @@ pub struct Body<'resp> {
     pub body_buffer: &'resp str,
 }
 
-fn request<'surl, 'resp>(url: &'surl str) -> Response {
+pub fn request<'surl, 'resp>(url: &'surl str) -> Response {
     let my_url = Url::new(url).unwrap();
     let headers: String = vec![("Host", my_url.host), ("Connection", "Close")]
         .iter()
@@ -166,8 +166,4 @@ fn request<'surl, 'resp>(url: &'surl str) -> Response {
 
         Response::new(response_buffer)
     }
-}
-
-pub fn load(url: &str) -> Response {
-    request(url)
 }

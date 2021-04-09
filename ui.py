@@ -1,6 +1,5 @@
 import tkinter
-
-import xmlrpc.client
+import myrustlib
 
 WIDTH, HEIGHT = 800, 600
 SCROLL_STEP = 10
@@ -40,19 +39,15 @@ class Browser:
         self.render()
 
     def load(self, url):
-        proxy = xmlrpc.client.ServerProxy("http://127.0.0.1:8080")
-        params = {"url": url}
-        response = proxy.load_url(params)
+        response = myrustlib.load_and_compute_layout(url)
         self.layout = response['layout']
         self.body = response['body']
         self.render()
 
     def compute_layout(self):
-        print("computing layout (xml-rpc)")
-        proxy = xmlrpc.client.ServerProxy("http://127.0.0.1:8080")
-        params = {"body": self.body,
-                  "width": self.width, "height": self.height, "scroll": self.scroll}
-        response = proxy.relayout(params)
+        print("computing layout rust-cpython")
+        response = myrustlib.load_and_compute_layout(
+            self.body, self.width, self.height, self.scroll)
         self.body = response['body']
         self.layout = response['layout']
         self.height = response['height']
@@ -60,7 +55,7 @@ class Browser:
         self.width = response['scroll']
 
     def render(self):
-        print("rendering")
+        print("rendering", self.layout)
         self.canvas.delete("all")
         for cursor_x, cursor_y, c in self.layout:
             if c == "\U0001F600":

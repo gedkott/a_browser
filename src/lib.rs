@@ -33,7 +33,7 @@ impl ToPyObject for ResponseBuffer {
 }
 
 fn load_and_compute_layout(_py: Python, url: &str) -> PyResult<ResponseBuffer> {
-    let resp = response::load(&url);
+    let resp = response::request(&url);
     let body = resp.get_body();
     Ok(ResponseBuffer {
         layout: layout::layout(&lex::lex(&body.body_buffer), 800, 600, 0)
