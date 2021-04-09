@@ -66,21 +66,26 @@ fn recompute_layout(
     })
 }
 
-py_module_initializer!(libmyrustlib, initlibmyrustlib, PyInit_myrustlib, |py, m| {
-    m.add(py, "__doc__", "This module is implemented in Rust")?;
-    m.add(
-        py,
-        "load_and_compute_layout",
-        py_fn!(py, load_and_compute_layout(val: &str)),
-    )?;
-
-    m.add(
-        py,
-        "recompute_layout",
-        py_fn!(
+py_module_initializer!(
+    liblayout_engine,
+    initliblayout_engine,
+    PyInit_layout_engine,
+    |py, m| {
+        m.add(py, "__doc__", "This module is implemented in Rust")?;
+        m.add(
             py,
-            recompute_layout(body: &str, width: i32, height: i32, scroll: i32)
-        ),
-    )?;
-    Ok(())
-});
+            "load_and_compute_layout",
+            py_fn!(py, load_and_compute_layout(val: &str)),
+        )?;
+
+        m.add(
+            py,
+            "recompute_layout",
+            py_fn!(
+                py,
+                recompute_layout(body: &str, width: i32, height: i32, scroll: i32)
+            ),
+        )?;
+        Ok(())
+    }
+);

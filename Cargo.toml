@@ -6,7 +6,7 @@ edition = "2018"
 
 
 [lib]
-name = "myrustlib"
+name = "layout_engine"
 crate-type = ["dylib"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
