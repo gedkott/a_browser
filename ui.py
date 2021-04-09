@@ -33,7 +33,6 @@ class Browser:
             self.image_map[c] = tkinter.PhotoImage(file=emoji_map[c])
 
     def resize_canvas(self):
-        print("resizing")
         self.canvas.config(width=self.width, height=self.height)
         self.compute_layout()
         self.render()
@@ -48,7 +47,6 @@ class Browser:
         self.render()
 
     def compute_layout(self):
-        print("computing layout rust-cpython")
         response = myrustlib.recompute_layout(
             self.body, self.width, self.height, self.scroll)
         self.body = response['body']
@@ -73,8 +71,6 @@ class Browser:
         if self.scroll < 0:
             self.scroll = 0
 
-        print("scrolldown new scroll: ", self.scroll)
-
         self.compute_layout()
         self.render()
 
@@ -83,7 +79,6 @@ class Browser:
         if self.scroll < 0:
             self.scroll = 0
 
-        print("scrolldown new scroll: ", self.scroll)
         self.compute_layout()
         self.render()
 
