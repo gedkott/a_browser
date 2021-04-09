@@ -2,3 +2,4 @@
 /.vscode
 *.dll
 *.pyd
+*.so
