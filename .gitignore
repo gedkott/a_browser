@@ -3,3 +3,4 @@
 *.dll
 *.pyd
 *.so
+__pycache__

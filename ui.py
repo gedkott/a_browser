@@ -1,4 +1,5 @@
 import tkinter
+from tkinter import font
 import layout_engine
 
 WIDTH, HEIGHT = 800, 600
@@ -32,13 +33,21 @@ class Browser:
         for c in emoji_map:
             self.image_map[c] = tkinter.PhotoImage(file=emoji_map[c])
 
+        self.font = font.Font(
+            family="Times",
+            size=16,
+            weight="bold",
+            slant="italic",
+        )
+
     def resize_canvas(self):
         self.canvas.config(width=self.width, height=self.height)
         self.compute_layout()
         self.render()
 
     def load(self, url):
-        response = layout_engine.load_and_compute_layout(url)
+        response = layout_engine.load_and_compute_layout(
+            url, {"linespace": self.font.metrics('linespace')},)
         self.body = response['body']
         self.layout = response['layout']
         self.height = response['height']
@@ -64,7 +73,7 @@ class Browser:
                     cursor_x, cursor_y - self.scroll, image=loaded_image)
             else:
                 self.canvas.create_text(
-                    cursor_x, cursor_y - self.scroll, text=c)
+                    cursor_x, cursor_y - self.scroll, text=c, font=self.font, anchor='nw')
 
     def scrolldown(self, scroll_step_mul):
         self.scroll += SCROLL_STEP * scroll_step_mul * 2
