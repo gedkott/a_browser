@@ -14,6 +14,7 @@ struct UrlParams {
 struct RelayoutParams {
     pub width: i32,
     pub height: i32,
+    pub scroll: i32,
     pub body: String,
 }
 
@@ -21,21 +22,35 @@ struct RelayoutParams {
 struct ResponseBuffer {
     pub layout: layout::Layout,
     pub body: String,
+    pub width: i32,
+    pub height: i32,
+    pub scroll: i32,
 }
 
 fn load_url(url_params: UrlParams) -> Result<ResponseBuffer, Fault> {
     let resp = response::load(&url_params.url);
     let body = resp.get_body();
     Ok(ResponseBuffer {
-        layout: layout::layout(&lex::lex(&body.body_buffer), 800),
+        layout: layout::layout(&lex::lex(&body.body_buffer), 800, 600, 0),
         body: body.body_buffer.to_string(),
+        width: 800,
+        height: 600,
+        scroll: 0,
     })
 }
 
 fn relayout(relayout_params: RelayoutParams) -> Result<ResponseBuffer, Fault> {
     Ok(ResponseBuffer {
-        layout: layout::layout(&lex::lex(&relayout_params.body), relayout_params.width),
+        layout: layout::layout(
+            &lex::lex(&relayout_params.body),
+            relayout_params.width,
+            relayout_params.height,
+            relayout_params.scroll,
+        ),
         body: relayout_params.body.to_string(),
+        width: relayout_params.width,
+        height: relayout_params.height,
+        scroll: relayout_params.scroll,
     })
 }
 

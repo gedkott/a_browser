@@ -34,6 +34,7 @@ class Browser:
             self.image_map[c] = tkinter.PhotoImage(file=emoji_map[c])
 
     def resize_canvas(self):
+        print("resizing")
         self.canvas.config(width=self.width, height=self.height)
         self.compute_layout()
         self.render()
@@ -47,16 +48,21 @@ class Browser:
         self.render()
 
     def compute_layout(self):
+        print("computing layout (xml-rpc)")
         proxy = xmlrpc.client.ServerProxy("http://127.0.0.1:8080")
         params = {"body": self.body,
-                  "width": self.width, "height": self.height}
+                  "width": self.width, "height": self.height, "scroll": self.scroll}
         response = proxy.relayout(params)
         self.body = response['body']
         self.layout = response['layout']
+        self.height = response['height']
+        self.width = response['width']
+        self.width = response['scroll']
 
     def render(self):
+        print("rendering")
         self.canvas.delete("all")
-        for (cursor_x, cursor_y, c) in self.layout:
+        for cursor_x, cursor_y, c in self.layout:
             if c == "\U0001F600":
                 loaded_image = self.image_map[c]
                 self.canvas.create_image(
