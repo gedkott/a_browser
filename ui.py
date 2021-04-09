@@ -18,8 +18,8 @@ class Browser:
             highlightthickness=0
         )
         self.canvas.pack(fill=tkinter.BOTH, expand=True)
-        self.window.bind("<Down>", self.scrolldown)
-        self.window.bind("<Up>", self.scrollup)
+        self.window.bind("<Down>", lambda e: self.scrolldown(1))
+        self.window.bind("<Up>", lambda e: self.scrollup(1))
         self.window.bind("<MouseWheel>", self.mouse_wheel)
         self.window.bind("<Configure>", self.configure)
         self.layout = []
@@ -40,22 +40,24 @@ class Browser:
 
     def load(self, url):
         response = myrustlib.load_and_compute_layout(url)
-        self.layout = response['layout']
         self.body = response['body']
+        self.layout = response['layout']
+        self.height = response['height']
+        self.width = response['width']
+        self.scroll = response['scroll']
         self.render()
 
     def compute_layout(self):
         print("computing layout rust-cpython")
-        response = myrustlib.load_and_compute_layout(
+        response = myrustlib.recompute_layout(
             self.body, self.width, self.height, self.scroll)
         self.body = response['body']
         self.layout = response['layout']
         self.height = response['height']
         self.width = response['width']
-        self.width = response['scroll']
+        self.scroll = response['scroll']
 
     def render(self):
-        print("rendering", self.layout)
         self.canvas.delete("all")
         for cursor_x, cursor_y, c in self.layout:
             if c == "\U0001F600":
@@ -66,25 +68,33 @@ class Browser:
                 self.canvas.create_text(
                     cursor_x, cursor_y - self.scroll, text=c)
 
-    def scrolldown(self, e):
-        self.scroll += SCROLL_STEP * 3
+    def scrolldown(self, scroll_step_mul):
+        self.scroll += SCROLL_STEP * scroll_step_mul * 2
         if self.scroll < 0:
             self.scroll = 0
+
+        print("scrolldown new scroll: ", self.scroll)
+
+        self.compute_layout()
         self.render()
 
-    def scrollup(self, e):
-        self.scroll -= SCROLL_STEP * 3
+    def scrollup(self, scroll_step_mul):
+        self.scroll -= SCROLL_STEP * scroll_step_mul * 2
         if self.scroll < 0:
             self.scroll = 0
+
+        print("scrolldown new scroll: ", self.scroll)
+        self.compute_layout()
         self.render()
 
     def mouse_wheel(self, e):
         # down
-        if e.delta == -120:
-            self.scrollup(e)
+        delta = e.delta
+        if delta < 0:
+            self.scrollup(abs(delta)/120)
         else:
             # up
-            self.scrolldown(e)
+            self.scrolldown(abs(delta)/120)
 
     def configure(self, e):
         width = e.width
