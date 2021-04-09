@@ -1,5 +1,5 @@
 import tkinter
-import myrustlib
+import layout_engine
 
 WIDTH, HEIGHT = 800, 600
 SCROLL_STEP = 10
@@ -38,7 +38,7 @@ class Browser:
         self.render()
 
     def load(self, url):
-        response = myrustlib.load_and_compute_layout(url)
+        response = layout_engine.load_and_compute_layout(url)
         self.body = response['body']
         self.layout = response['layout']
         self.height = response['height']
@@ -47,7 +47,7 @@ class Browser:
         self.render()
 
     def compute_layout(self):
-        response = myrustlib.recompute_layout(
+        response = layout_engine.recompute_layout(
             self.body, self.width, self.height, self.scroll)
         self.body = response['body']
         self.layout = response['layout']

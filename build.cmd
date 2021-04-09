@@ -1,3 +1,2 @@
-cargo build
-copy target\release\myrustlib.dll .
-copy target\release\myrustlib.dll myrustlib.pyd
+cargo build --release --lib
+copy target\release\layout_engine.dll layout_engine.pyd
