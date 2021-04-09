@@ -1,5 +1,5 @@
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::env;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::sync::Arc;
@@ -22,8 +22,8 @@ struct StatusLine<'resp> {
 
 type Headers<'resp> = HashMap<&'resp str, &'resp str>;
 
-#[derive(Debug)]
-struct Response {
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Response {
     response_buffer: String,
     status_line_end_index: usize,
     headers_end_index: usize,
@@ -40,6 +40,10 @@ impl Response {
             status_line_end_index,
             headers_end_index,
         }
+    }
+
+    pub fn get_response_buffer(&self) -> &str {
+        &self.response_buffer
     }
 
     fn get_status_line(&self) -> Option<StatusLine> {
@@ -76,7 +80,7 @@ impl Response {
         HashMap::from(kvs.collect())
     }
 
-    fn get_body(&self) -> Body {
+    pub fn get_body(&self) -> Body {
         Body {
             body_buffer: &self.response_buffer
                 [self.headers_end_index + 4..self.response_buffer.len() - 1],
@@ -122,16 +126,18 @@ impl<'surl> Url<'surl> {
 }
 
 #[derive(Debug)]
-struct Body<'resp> {
-    body_buffer: &'resp str,
+pub struct Body<'resp> {
+    pub body_buffer: &'resp str,
 }
 
-fn request<'surl, 'resp>(url: &'surl str) -> Response {
+pub fn request<'surl, 'resp>(url: &'surl str) -> Response {
     let my_url = Url::new(url).unwrap();
-    let http_string = format!(
-        "GET {} HTTP/1.0\r\nHost: {}\r\n\r\n",
-        my_url.path, my_url.host
-    );
+    let headers: String = vec![("Host", my_url.host), ("Connection", "Close")]
+        .iter()
+        .map(|(k, v)| format!("{}: {}", k, v))
+        .collect::<Vec<String>>()
+        .join("\r\n");
+    let http_string = format!("GET {} HTTP/1.1\r\n{}\r\n\r\n", my_url.path, headers);
 
     if my_url.scheme == "https://" {
         let mut config = rustls::ClientConfig::new();
@@ -147,49 +153,17 @@ fn request<'surl, 'resp>(url: &'surl str) -> Response {
 
         let _ = tls.write(http_string.as_bytes()).unwrap();
 
-        let mut response_buffer = Vec::new();
-        tls.read_to_end(&mut response_buffer).unwrap();
+        let mut response_buffer = String::new();
+        tls.read_to_string(&mut response_buffer).unwrap();
 
-        // println!("{:?}", String::from_utf8_lossy(&response_buffer));
-
-        Response::new(String::from_utf8_lossy(&response_buffer).to_string())
+        Response::new(response_buffer)
     } else {
         let mut stream = TcpStream::connect((my_url.host, 80)).unwrap();
         let _ = stream.write(http_string.as_bytes()).unwrap();
 
         let mut response_buffer = String::new();
         let _ = stream.read_to_string(&mut response_buffer).unwrap();
+
         Response::new(response_buffer)
     }
-}
-
-fn show(body: &Body) {
-    let mut in_angle = false;
-    body.body_buffer.chars().for_each(|c| {
-        if c == '<' {
-            in_angle = true;
-        } else if c == '>' {
-            in_angle = false;
-        } else {
-            if !in_angle {
-                print!("{}", c)
-            }
-        }
-    });
-}
-
-fn load(url: &str) {
-    let response = request(url);
-
-    show(&response.get_body());
-}
-
-fn main() {
-    let args = env::args().collect::<Vec<String>>();
-    let url = if args.len() == 2 {
-        &args[1]
-    } else {
-        "http://example.org/index.html"
-    };
-    load(url);
 }
