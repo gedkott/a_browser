@@ -48,7 +48,7 @@ class Browser:
 
     def compute_layout(self):
         response = layout_engine.recompute_layout(
-            self.body, self.width, self.height, self.scroll)
+            self.body, self.width, self.height, int(self.scroll))
         self.body = response['body']
         self.layout = response['layout']
         self.height = response['height']
