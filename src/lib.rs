@@ -67,8 +67,8 @@ fn recompute_layout(
 }
 
 py_module_initializer!(
-    liblayout_engine,
-    initliblayout_engine,
+    layout_engine,
+    initlayout_engine,
     PyInit_layout_engine,
     |py, m| {
         m.add(py, "__doc__", "This module is implemented in Rust")?;
