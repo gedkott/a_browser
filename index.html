@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en-US" xml:lang="en-US">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="generator" content="pandoc" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=yes" />
+
+    <link rel="prev" href="graphics" />
+    <link rel="next" href="html" />
+    <link rel="stylesheet" href="book.css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Vollkorn%7CLora&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Vollkorn:400i%7CLora:400i&display=swap" />
+
+    <title>Formatting Text | Web Browser Engineering</title>
+
+</head>
+
+<body>
+
+
+    <header>
+        <h1 class="title">Formatting Text 😀</h1>
+    </header>
+
+    <nav class="links">
+        Chapter 3 of <a href="./index.html" title="Table of Contents">Web Browser Engineering</a>.
+        <a rel="prev" title="Previous chapter" href="graphics.html">&lt;</a>
+        <a rel="next" title="Next chapter" href="html.html">&gt;</a>
+    </nav>
+
+    <nav id="toc">
+        <ul>
+            <li><a href="#what-is-a-font">What is a font?</a></li>
+            <li><a href="#measuring-text">Measuring text</a></li>
+            <li><a href="#word-by-word">Word by word</a></li>
+            <li><a href="#styling-text">Styling text</a></li>
+            <li><a href="#a-layout-object">A layout object</a></li>
+            <li><a href="#text-of-different-sizes">Text of different sizes</a></li>
+            <li><a href="#summary">Summary</a></li>
+            <li><a href="#outline">Outline</a></li>
+            <li><a href="#exercises">Exercises</a></li>
+        </ul>
+    </nav>
+
+    <p>In the last chapter, your web browser created a graphical window and drew a grid of characters to it. That’s OK for Chinese, but English text features characters of different widths and words that you can’t break across lines.<span class="note-container"><span class="note">There are lots of languages in the world, and lots of typographic conventions. A real web browser supports every language from Arabic to Zulu, but this book focuses on English. Text is near-infinitely complex, but this book cannot be infinitely long!</span></span> In this chapter, we’ll add those capabilities. You’ll be able to read this page in your browser!</p>
+    <div id="toc">
+        <ul>
+            <li>
+                <p><a href="#what-is-a-font">What is a font?</a></p>
+            </li>
+            <li>
+                <p><a href="#measuring-text">Measuring text</a></p>
+            </li>
+            <li>
+                <p><a href="#word-by-word">Word by word</a></p>
+            </li>
+            <li>
+                <p><a href="#styling-text">Styling text</a></p>
+            </li>
+            <li>
+                <p><a href="#a-layout-object">A layout object</a></p>
+            </li>
+            <li>
+                <p><a href="#text-of-different-sizes">Text of different sizes</a></p>
+            </li>
+            <li>
+                <p><a href="#summary">Summary</a></p>
+            </li>
+            <li>
+                <p><a href="#outline">Outline</a></p>
+            </li>
+            <li>
+                <p><a href="#exercises">Exercises</a></p>
+            </li>
+        </ul>
+    </div>
+    <h1 id="what-is-a-font">What is a font?</h1>
+    <p>So far, we’ve called <code>create_text</code> with a character and two coordinates to write text to the screen. But we never specified the font, the size, or the color. To talk about those things, we need to create and use font objects.</p>
+    <p>What is a <em>font</em>, exactly? Well, in the olden days, printers arranged little metal slugs on rails, covered them with ink, and pressed them to a sheet of paper, creating a printed page. The metal shapes came in boxes, one per letter, so you’d have a (large) box of e’s, a (small) box of x’s, and so on. The boxes came in cases (one for upper<em>case</em> and one for lower<em>case</em> letters). The set of cases was called a font.<span class="note-container"><span class="note">The word is related to <em>foundry</em>, which would create the little metal shapes.</span></span> Naturally, if you wanted to print larger text, you needed different (bigger) shapes, so those were a different font; a collection of fonts was called a <em>type</em>, which is why we call it typing. Variations—like bold or italic letters—were called that type’s “faces”.</p>
+    <p>This nomenclature reflects the world of the printing press: metal shapes in boxes in cases of different types. Our modern world instead has dropdown menus, and the old words no longer match it. “Font” can now mean font, typeface, or type,<span class="note-container"><span class="note">Let alone “font family”, which can refer to larger or smaller collections of types.</span></span> and we say a font contains several different <em>weights</em> (like “bold” and “normal”),<span class="note-container"><span class="note">But sometimes other weights as well, like “light”, “semibold”, “black”, and “condensed”. Good fonts tend to come in many weights.</span></span> several different <em>styles</em> (like “italic” and “roman”, which is what not-italic is called),<span class="note-container"><span class="note">Sometimes there are other options as well, like maybe there’s a small-caps version; these are sometimes called <em>options</em> as well. And don’t get me started on automatic versus manual italics.</span></span> and arbitrary <em>sizes</em>.<span class="note-container"><span class="note">Font looks especially good at certain sizes where <em>hints</em> tell the computer how to best to align it to the pixel grid.</span></span> Welcome to the world of magic ink.</p>
+    <p>Yet Tk’s <em>font objects</em> correspond to the older meaning of font: a type at a fixed size, style, and weight. For example:<span class="note-container"><span class="note">You can only create <code>Font</code> objects, or any other kinds of Tk objects, after calling <code>tkinter.Tk()</code>, which is why I’m putting this code in the Browser constructor.</span></span></p>
+    <div class="sourceCode" id="cb1" data-expected="False">
+        <pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tkinter.font</span>
+        <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+        <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Browser:</span>
+        <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>):</span>
+        <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ...</span></span>
+        <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>        bi_times <span class="op">=</span> tkinter.font.Font(</span>
+        <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>            family<span class="op">=</span><span class="st">&quot;Times&quot;</span>,</span>
+        <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>            size<span class="op">=</span><span class="dv">16</span>,</span>
+        <span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>            weight<span class="op">=</span><span class="st">&quot;bold&quot;</span>,</span>
+        <span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>            slant<span class="op">=</span><span class="st">&quot;italic&quot;</span>,</span>
+        <span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>        )</span></code></pre>
+    </div>
+    <div class="quirk">
+        <p>Your computer might not have “Times” installed. The <code>tkinter.font.families()</code> command lists the fonts available on your machine; and pick something other than <code>Times</code> if you need to.</p>
+    </div>
+    <p>Font objects can be passed to <code>create_text</code>’s <code>font</code> argument:</p>
+    <div class="sourceCode" id="cb2" data-expected="False">
+        <pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>canvas.create_text(<span class="dv">200</span>, <span class="dv">100</span>, text<span class="op">=</span><span class="st">&quot;Hi!&quot;</span>, font<span class="op">=</span>bi_times)</span></code></pre>
+    </div>
+    <div class="further">
+        <p>In the olden times, American type setters kept their boxes of metal shapes arranged in a <a href="http://www.alembicpress.co.uk/Typecases/CJCCASE.HTM">California job case</a>, which combined lower- and upper-case letters side by side in one case, making type setting easier. The upper-/lower-case nomenclature dates from centuries earlier.</p>
+    </div>
+    <h1 id="measuring-text">Measuring text</h1>
+    <p>Text takes up space vertically and horizontally, and the font object’s <code>metrics</code> and <code>measure</code> methods measure that space:<span class="note-container"><span class="note">On your computer, you might get different numbers. That’s right—text rendering is OS-dependent, because it is complex enough that everyone uses one of a few libraries to do it, usually libraries that ship with the OS. That’s why macOS fonts tend to be “blurrier” than the same font on Windows: different libraries make different trade-offs.</span></span></p>
+    <div class="sourceCode" id="cb3" data-expected="False">
+        <pre class="sourceCode python"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> bi_times.metrics()</span>
+        <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>{<span class="st">&#39;ascent&#39;</span>: <span class="dv">15</span>, <span class="st">&#39;descent&#39;</span>: <span class="dv">7</span>, <span class="st">&#39;linespace&#39;</span>: <span class="dv">22</span>, <span class="st">&#39;fixed&#39;</span>: <span class="dv">0</span>}</span>
+        <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> bi_times.measure(<span class="st">&quot;Hi!&quot;</span>)</span>
+        <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="dv">31</span></span></code></pre>
+    </div>
+    <p>The <code>metrics</code> call yields information about the vertical dimensions of the text: the <code>linespace</code> is how tall the text is, which includes an <code>ascent</code> which goes “above the line” and a <code>descent</code> that goes “below the line”.<span class="note-container"><span class="note">The <code>fixed</code> parameter is actually a boolean and tells you whether all letters are the same <em>width</em>, so it doesn’t really fit here.</span></span> The <code>ascent</code> and <code>descent</code> matter when words in different sizes sit on the same line: they ought to line up “along the line”, not along their tops or bottoms.</p>
+    <p>Let’s dig deeper. Remember that <code>bi_times</code> is size-16 Times: why does <code>font.metrics</code> report that it is actually 22 pixels tall? Well, first of all, size-16 meant sixteen <em>points</em>, which are defined as 72<sup>nd</sup>s of an inch, not sixteen <em>pixels</em>, which your monitor probably has around 100 of per inch.<span class="note-container"><span class="note">Tk doesn’t use points anywhere else in its API. It’s supposed to use pixels if you pass it a negative number, but that doesn’t appear to work.</span></span> Those sixteen points measure not the individual letters but the metal blocks the letters were once carved from, which by necessity were larger than the letters themselves. In fact, different size-16 fonts have letters of varying heights:</p>
+    <div class="sourceCode" id="cb4" data-expected="False">
+        <pre class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> tkinter.font.Font(family<span class="op">=</span><span class="st">&quot;Courier&quot;</span>, size<span class="op">=</span><span class="dv">16</span>).metrics()</span>
+        <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>{<span class="st">&#39;fixed&#39;</span>: <span class="dv">1</span>, <span class="st">&#39;ascent&#39;</span>: <span class="dv">13</span>, <span class="st">&#39;descent&#39;</span>: <span class="dv">4</span>, <span class="st">&#39;linespace&#39;</span>: <span class="dv">17</span>}</span>
+        <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> tkinter.font.Font(family<span class="op">=</span><span class="st">&quot;Times&quot;</span>, size<span class="op">=</span><span class="dv">16</span>).metrics()</span>
+        <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>{<span class="st">&#39;fixed&#39;</span>: <span class="dv">0</span>, <span class="st">&#39;ascent&#39;</span>: <span class="dv">14</span>, <span class="st">&#39;descent&#39;</span>: <span class="dv">4</span>, <span class="st">&#39;linespace&#39;</span>: <span class="dv">18</span>}</span>
+        <span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> tkinter.font.Font(family<span class="op">=</span><span class="st">&quot;Helvetica&quot;</span>, size<span class="op">=</span><span class="dv">16</span>).metrics()</span>
+        <span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>{<span class="st">&#39;fixed&#39;</span>: <span class="dv">0</span>, <span class="st">&#39;ascent&#39;</span>: <span class="dv">15</span>, <span class="st">&#39;descent&#39;</span>: <span class="dv">4</span>, <span class="st">&#39;linespace&#39;</span>: <span class="dv">19</span>}</span></code></pre>
+    </div>
+    <p>The <code>measure()</code> method is more direct: it tells you how much <em>horizontal</em> space text takes up, in pixels. This depends on the text, of course, since different letters have different width:<span class="note-container"><span class="note">The sum at the end of this snippet may not work on your machine: the width of a word is not always the sum of the widths of its letters. That’s because Tk always returns whole pixels, but internally might do some rounding. Plus some fonts use something called <em>kerning</em> to shift letters a little bit when particular pairs of letters are next to one another, though I don’t know if Tk supports this.</span></span></p>
+    <div class="sourceCode" id="cb5" data-expected="False">
+        <pre class="sourceCode python"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> bi_times.measure(<span class="st">&quot;Hi!&quot;</span>)</span>
+        <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="dv">31</span></span>
+        <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> bi_times.measure(<span class="st">&quot;H&quot;</span>)</span>
+        <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="dv">17</span></span>
+        <span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> bi_times.measure(<span class="st">&quot;i&quot;</span>)</span>
+        <span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="dv">6</span></span>
+        <span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> bi_times.measure(<span class="st">&quot;!&quot;</span>)</span>
+        <span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="dv">8</span></span>
+        <span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="dv">17</span> <span class="op">+</span> <span class="dv">8</span> <span class="op">+</span> <span class="dv">6</span></span>
+        <span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="dv">31</span></span></code></pre>
+    </div>
+    <p>You can use this information to lay text out on the page. For example, suppose you want to draw the text “Hello, world!” in two pieces, so that “world!” is italic. Let’s use two fonts:</p>
+    <div class="sourceCode" id="cb6" data-expected="False">
+        <pre class="sourceCode python"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>font1 <span class="op">=</span> tkinter.font.Font(family<span class="op">=</span><span class="st">&quot;Times&quot;</span>, size<span class="op">=</span><span class="dv">16</span>)</span>
+        <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>font2 <span class="op">=</span> tkinter.font.Font(family<span class="op">=</span><span class="st">&quot;Times&quot;</span>, size<span class="op">=</span><span class="dv">16</span>, slant<span class="op">=</span><span class="st">&#39;italic&#39;</span>)</span></code></pre>
+    </div>
+    <p>We can now lay out the text, starting at <code>(200, 200)</code>:</p>
+    <div class="sourceCode" id="cb7" data-expected="False">
+        <pre class="sourceCode python"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>x, y <span class="op">=</span> <span class="dv">200</span>, <span class="dv">200</span></span>
+        <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>canvas.create_text(x, y, text<span class="op">=</span><span class="st">&quot;Hello, &quot;</span>, font<span class="op">=</span>font1)</span>
+        <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>x <span class="op">+=</span> font1.measure(<span class="st">&quot;Hello, &quot;</span>)</span>
+        <span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>canvas.create_text(x, y, text<span class="op">=</span><span class="st">&quot;world!&quot;</span>, font<span class="op">=</span>font2)</span></code></pre>
+    </div>
+    <p>You should see “Hello,” and “world!”, correctly aligned and with the second word italicized.</p>
+    <p>Unfortunately, this code has a bug, though one masked by the choice of example text: replace “world!” with “overlapping!” and the two words will overlap. That’s because the coordinates <code>x</code> and <code>y</code> that you pass to <code>create_text</code> tell Tk where to put the <em>center</em> of the text. It only worked for “Hello, world!” because “Hello,” and “world!” are the same length!</p>
+    <p>Luckily, the meaning of the coordinate you pass in is configurable. We can instruct Tk to treat the coordinate we gave as the top-left corner of the text by setting the <code>anchor</code> argument to <code>"nw"</code>, meaning the “northwest” corner of the text:</p>
+    <div class="sourceCode" id="cb8" data-expected="False">
+        <pre class="sourceCode python"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>x, y <span class="op">=</span> <span class="dv">200</span>, <span class="dv">225</span></span>
+        <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>canvas.create_text(x, y, text<span class="op">=</span><span class="st">&quot;Hello, &quot;</span>, font<span class="op">=</span>font1, anchor<span class="op">=</span><span class="st">&#39;nw&#39;</span>)</span>
+        <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>x <span class="op">+=</span> font1.measure(<span class="st">&quot;Hello, &quot;</span>)</span>
+        <span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>canvas.create_text(x, y, text<span class="op">=</span><span class="st">&quot;overlapping!&quot;</span>, font<span class="op">=</span>font2, anchor<span class="op">=</span><span class="st">&#39;nw&#39;</span>)</span></code></pre>
+    </div>
+    <p>Modify the <code>render</code> function to set <code>anchor</code> to <code>"nw"</code>; we didn’t need to do that in the previous chapter because all Chinese characters are the same width.</p>
+    <div class="further">
+        <p>If you find font metrics confusing, you’re not the only one! In 2012, the Michigan Supreme Court heard <a href="http://publicdocs.courts.mi.gov/opinions/final/sct/20120803_s145387_157_standup-op.pdf"><em>Stand Up for Democracy v. Secretary of State</em></a>, a case that centered on the definition of font size. The court decided (correctly) that font size is the size of the metal blocks that letters were carved from and not the size of the letters themselves.</p>
+    </div>
+    <h1 id="word-by-word">Word by word</h1>
+    <p>In the last chapter, the <code>layout</code> function looped over the text character-by-character and moved to the next line whenever we ran out of space. That’s appropriate in Chinese, where each character more or less <em>is</em> a word. But in English you can’t move to the next line in the middle of a word. Instead, we need to lay out the text one word at a time:<span class="note-container"><span class="note">This code splits words on whitespace. It’ll thus break on Chinese, since there won’t be whitespace between words. Real browsers use language-dependent rules for laying out text, including for identifying word boundaries.</span></span></p>
+    <div class="sourceCode" id="cb9" data-expected="False">
+        <pre class="sourceCode python"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> word <span class="kw">in</span> text.split():</span>
+        <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    w <span class="op">=</span> font.measure(word)</span>
+        <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> cursor_x <span class="op">+</span> w <span class="op">&gt;=</span> WIDTH <span class="op">-</span> HSTEP:</span>
+        <span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>        cursor_y <span class="op">+=</span> font.metrics(<span class="st">&quot;linespace&quot;</span>) <span class="op">*</span> <span class="fl">1.2</span></span>
+        <span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>        cursor_x <span class="op">=</span> HSTEP</span>
+        <span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    <span class="va">self</span>.display_list.append((cursor_x, cursor_y, word))</span>
+        <span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    cursor_x <span class="op">+=</span> w <span class="op">+</span> font.measure(<span class="st">&quot; &quot;</span>)</span></code></pre>
+    </div>
+    <p>There’s a lot of moving parts to this code. First, we measure the width of the text, and store it in <code>w</code>. We’d normally draw the text at <code>cursor_x</code>, so its right end would be at <code>cursor_x + w</code>, so we check if that’s past the edge of the page. Now we have the location to <em>start</em> drawing the word, so we add to the display list; and finally we update <code>cursor_x</code> to point to the end of the word.</p>
+    <p>There are a few surprises in this code. One is that I call <code>metrics</code> with an argument; that just returns the named metric directly. Also, I increment <code>cursor_x</code> by <code>w + font.measure(" ")</code> instead of <code>w</code>. That’s because I want to have spaces between the words: the call to <code>split()</code> removed all of the whitespace, and this adds it back. I don’t add the space to <code>w</code> on the second line, though, because you don’t need a space after the last word on a line.</p>
+    <p>Finally, note that I multiply the linespace by 1.2 when incrementing <code>y</code>. Try removing the multiplier: you’ll see that the text is harder to read because the lines are too close together.<span class="note-container"><span class="note">Designers say the text is too “tight”.</span></span> Instead, it is common to add “line spacing” or “leading”<span class="note-container"><span class="note">So named because in metal type days, thin pieces of lead that were placed between the lines to space them out. Lead is a softer metal than what the actual letter pieces were made of, so it could compress a little to keep pressure on the other pieces. Pronounce it “led-ing” not “leed-ing”.</span></span> between lines. The 20% line spacing is a normal amount.</p>
+    <div class="further">
+        <p>Breaking lines in the middle of a word is called hyphenation, and can be turned on via the <a href="https://drafts.csswg.org/css-text-3/#hyphens-property"><code>hyphens</code> CSS property</a>. Browsers use the <a href="http://www.tug.org/docs/liang/liang-thesis.pdf">Knuth-Liang hyphenation algorithm</a>, which uses a dictionary of word fragments to prioritize possible hyphenation points, to implement this.</p>
+    </div>
+    <h1 id="styling-text">Styling text</h1>
+    <p>Right now, all of the text on the page is drawn with one font. But web pages sometimes <strong>bold</strong> or <em>italicize</em> text using the <code>&lt;b&gt;</code> and <code>&lt;i&gt;</code> tags. It’d be nice to support that, but right now, the code resists the change: the <code>layout</code> function only receives the text of the page as input, and so has no idea where the bold and italics tags are.</p>
+    <p>Let’s change <code>lex</code> to return a list of <em>tokens</em>, where a token is either a <code>Text</code> object (for a run of characters outside a tag) or a <code>Tag</code> object (for the contents of a tag). You’ll need to write the <code>Text</code> and <code>Tag</code> classes:<span class="note-container"><span class="note">If you’re familiar with Python, you might want to use the <code>dataclass</code> library, which makes it easier to define these sorts of utility classes.</span></span></p>
+    <div class="sourceCode" id="cb10">
+        <pre class="sourceCode python"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Text:</span>
+        <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, text):</span>
+        <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.text <span class="op">=</span> text</span>
+        <span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a></span>
+        <span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Tag:</span>
+        <span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, tag):</span>
+        <span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.tag <span class="op">=</span> tag</span></code></pre>
+    </div>
+    <p><code>lex</code> must now gather text into <code>Text</code> and <code>Tag</code> objects:<span class="note-container"><span class="note">If you’ve done exercises in prior chapters, your code will look different. Code snippets in the book always assume you haven’t done the exercises, so you’ll need to port your modifications.</span></span></p>
+    <div class="sourceCode" id="cb11">
+        <pre class="sourceCode python"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> lex(body):</span>
+        <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    out <span class="op">=</span> []</span>
+        <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    text <span class="op">=</span> <span class="st">&quot;&quot;</span></span>
+        <span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    in_tag <span class="op">=</span> <span class="va">False</span></span>
+        <span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> c <span class="kw">in</span> body:</span>
+        <span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> c <span class="op">==</span> <span class="st">&quot;&lt;&quot;</span>:</span>
+        <span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>            in_tag <span class="op">=</span> <span class="va">True</span></span>
+        <span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> text: out.append(Text(text))</span>
+        <span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>            text <span class="op">=</span> <span class="st">&quot;&quot;</span></span>
+        <span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">elif</span> c <span class="op">==</span> <span class="st">&quot;&gt;&quot;</span>:</span>
+        <span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>            in_tag <span class="op">=</span> <span class="va">False</span></span>
+        <span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>            out.append(Tag(text))</span>
+        <span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>            text <span class="op">=</span> <span class="st">&quot;&quot;</span></span>
+        <span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
+        <span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>            text <span class="op">+=</span> c</span>
+        <span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> in_tag <span class="kw">and</span> text:</span>
+        <span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>        out.append(Text(text))</span>
+        <span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> out</span></code></pre>
+    </div>
+    <p>At the end of the loop, <code>lex</code> dumps any accumulated text as a <code>Text</code> object. Otherwise, if you never saw an angle bracket, you’d return an empty list of tokens. But unfinished tags, like in <code>Hi!&lt;hr</code>, are thrown out.<span class="note-container"><span class="note">This may strike you as an odd decision: why not raise an error, or finish up the tag for the author? Good questions, but dropping the tag is what browsers do.</span></span></p>
+    <p>Note that <code>Text</code> and <code>Tag</code> are asymmetric: <code>lex</code> avoids empty <code>Text</code> objects, but not empty <code>Tag</code> objects. That’s because an empty <code>Tag</code> object represents the HTML code <code>&lt;&gt;</code>, while an empty <code>Text</code> object with empty text represents no content at all.</p>
+    <p>Since we’ve modified <code>lex</code> we are now passing <code>layout</code> not just the text of the page, but also the tags in it. So <code>layout</code> must loop over tokens, not text:</p>
+    <div class="sourceCode" id="cb12" data-expected="False">
+        <pre class="sourceCode python"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> layout(<span class="va">self</span>, tokens):</span>
+        <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ...</span></span>
+        <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> tok <span class="kw">in</span> tokens:</span>
+        <span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="bu">isinstance</span>(tok, Text):</span>
+        <span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>            <span class="cf">for</span> word <span class="kw">in</span> tok.text.split():</span>
+        <span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>                <span class="co"># ...</span></span>
+        <span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ...</span></span></code></pre>
+    </div>
+    <p><code>layout</code> can also examine tag tokens to change font when directed by the page. Let’s start with support for weights and styles, with two corresponding variables:</p>
+    <div class="sourceCode" id="cb13" data-replace="weight/self.weight,style/self.style">
+        <pre class="sourceCode python"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>weight <span class="op">=</span> <span class="st">&quot;normal&quot;</span></span>
+        <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>style <span class="op">=</span> <span class="st">&quot;roman&quot;</span></span></code></pre>
+    </div>
+    <p>Those variables must change when the bold and italics open and close tags are seen:</p>
+    <div class="sourceCode" id="cb14" data-replace="weight/self.weight,style/self.style" data-indent="8">
+        <pre class="sourceCode python"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="bu">isinstance</span>(tok, Text):</span>
+        <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ...</span></span>
+        <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="cf">elif</span> tok.tag <span class="op">==</span> <span class="st">&quot;i&quot;</span>:</span>
+        <span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    style <span class="op">=</span> <span class="st">&quot;italic&quot;</span></span>
+        <span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="cf">elif</span> tok.tag <span class="op">==</span> <span class="st">&quot;/i&quot;</span>:</span>
+        <span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    style <span class="op">=</span> <span class="st">&quot;roman&quot;</span></span>
+        <span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="cf">elif</span> tok.tag <span class="op">==</span> <span class="st">&quot;b&quot;</span>:</span>
+        <span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    weight <span class="op">=</span> <span class="st">&quot;bold&quot;</span></span>
+        <span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a><span class="cf">elif</span> tok.tag <span class="op">==</span> <span class="st">&quot;/b&quot;</span>:</span>
+        <span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    weight <span class="op">=</span> <span class="st">&quot;normal&quot;</span></span></code></pre>
+    </div>
+    <p>Note that this code correctly handles not only <code>&lt;b&gt;bold&lt;/b&gt;</code> and <code>&lt;i&gt;italic&lt;/i&gt;</code> text, but also <code>&lt;b&gt;&lt;i&gt;bold italic&lt;/i&gt;&lt;/b&gt;</code> text.<span class="note-container"><span class="note">It even handles mis-nested tags like <code>&lt;b&gt;b&lt;i&gt;bi&lt;/b&gt;i&lt;/i&gt;</code>, but it does not handle <code>&lt;b&gt;&lt;b&gt;twice&lt;/b&gt;bolded&lt;/b&gt;</code> text. We’ll return to both in the <a href="html.html">next chapter</a>.</span></span></p>
+    <p>The <code>bold</code> and <code>italic</code> variables are used to select the font. Since the font is computed in <code>layout</code> but used in <code>render</code>, we’ll need to add the font used to each entry in the display list.</p>
+    <div class="sourceCode" id="cb15" data-expected="False">
+        <pre class="sourceCode python"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> instance(tok, Text):</span>
+        <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    font <span class="op">=</span> tkinter.font.Font(</span>
+        <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>        size<span class="op">=</span><span class="dv">16</span>,</span>
+        <span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>        weight<span class="op">=</span>weight,</span>
+        <span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>        slant<span class="op">=</span>style,</span>
+        <span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    )</span>
+        <span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> word <span class="kw">in</span> tok.text.split():</span>
+        <span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ...</span></span>
+        <span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>        display_list.append((cursor_x, cursor_y, word, font))</span></code></pre>
+    </div>
+    <p>Make sure to update <code>render</code> to expect and use this extra font field in display list entries.</p>
+    <div class="further">
+        <p><em>Italic</em> fonts were developed in Italy (hence the name) to mimic a cursive handwriting style called “<a href="https://en.wikipedia.org/wiki/Chancery_hand">chancery hand</a>”. Non-italic fonts are called <em>roman</em> because they mimic text on Roman monuments. There is an obscure third option: <a href="https://en.wikipedia.org/wiki/Oblique_type"><em>oblique</em> fonts</a>, which look like roman fonts but are slanted.</p>
+    </div>
+    <h1 id="a-layout-object">A layout object</h1>
+    <p>With all of these tags, <code>layout</code> has become quite large, with lots of local variables and some complicated control flow. That is one sign that something deserves to be a class, not a function:</p>
+    <div class="sourceCode" id="cb16">
+        <pre class="sourceCode python"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Layout:</span>
+        <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, tokens):</span>
+        <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.display_list <span class="op">=</span> []</span></code></pre>
+    </div>
+    <p>Every local variable in <code>layout</code> then becomes a field of <code>Layout</code>:</p>
+    <div class="sourceCode" id="cb17">
+        <pre class="sourceCode python"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="va">self</span>.cursor_x <span class="op">=</span> HSTEP</span>
+        <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="va">self</span>.cursor_y <span class="op">=</span> VSTEP</span>
+        <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="va">self</span>.weight <span class="op">=</span> <span class="st">&quot;normal&quot;</span></span>
+        <span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="va">self</span>.style <span class="op">=</span> <span class="st">&quot;roman&quot;</span></span>
+        <span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="va">self</span>.size <span class="op">=</span> <span class="dv">16</span></span></code></pre>
+    </div>
+    <p>The core of the old <code>layout</code> is a loop over tokens, and we can move the body of that loop to a method on <code>Layout</code>:</p>
+    <div class="sourceCode" id="cb18">
+        <pre class="sourceCode python"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, tokens):</span>
+        <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ...</span></span>
+        <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> tok <span class="kw">in</span> tokens:</span>
+        <span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.token(tok)</span>
+        <span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a></span>
+        <span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> token(<span class="va">self</span>, tok):</span>
+        <span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">isinstance</span>(tok, Text):</span>
+        <span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ...</span></span>
+        <span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> tok.tag <span class="op">==</span> <span class="st">&quot;i&quot;</span>:</span>
+        <span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.style <span class="op">=</span> <span class="st">&quot;italic&quot;</span></span>
+        <span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ...</span></span></code></pre>
+    </div>
+    <p>In fact, the body of the <code>isinstance(tok, Text)</code> branch can be moved to its own method:</p>
+    <div class="sourceCode" id="cb19" data-replace="16/self.size" data-indent="4">
+        <pre class="sourceCode python"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> text(<span class="va">self</span>, text):</span>
+        <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    font <span class="op">=</span> tkinter.font.Font(</span>
+        <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>        size<span class="op">=</span><span class="dv">16</span>,</span>
+        <span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>        weight<span class="op">=</span><span class="va">self</span>.weight,</span>
+        <span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>        slant<span class="op">=</span><span class="va">self</span>.style,</span>
+        <span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>    )</span>
+        <span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> word <span class="kw">in</span> text.split():</span>
+        <span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ...</span></span></code></pre>
+    </div>
+    <p>Now that everything has moved out of <code>Browser</code>’s old <code>load</code> function, it can be replaced with calls into <code>Layout</code>:</p>
+    <div class="sourceCode" id="cb20">
+        <pre class="sourceCode python"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Browser:</span>
+        <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> load(<span class="va">self</span>, url):</span>
+        <span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>        headers, body <span class="op">=</span> request(url)</span>
+        <span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>        tokens <span class="op">=</span> lex(body)</span>
+        <span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.display_list <span class="op">=</span> Layout(tokens).display_list</span>
+        <span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.render()</span></code></pre>
+    </div>
+    <p>When you do big refactors like this, it’s important to work incrementally. It might seem more efficient to change everything at once, that efficiency brings with it a risk of failure: trying to do so much that you get confused and have to abandon the whole refactor.</p>
+    <p>Anyway, this refactor isolated all of the text-handling code into its own method, with the main <code>token</code> function just branching on the tag name. Let’s take advantage of the new, cleaner organization to add more tags. With font weights and styles working, size is the next frontier in typographic sophistication. One simple way to change font size is the <code>&lt;small&gt;</code> tag and its deprecated sister tag <code>&lt;big&gt;</code>.<span class="note-container"><span class="note">In your web design projects, use the CSS <code>font-size</code> property to change text size instead of <code>&lt;big&gt;</code> and <code>&lt;small&gt;</code>. But since we haven’t <a href="styles.html">implemented CSS</a> for our browser, we’re stuck using them here.</span></span></p>
+    <p>Our experience with font styles and weights suggests a simple approach. First, a field in <code>Layout</code> to track font size:</p>
+    <div class="sourceCode" id="cb21">
+        <pre class="sourceCode python"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="va">self</span>.size <span class="op">=</span> <span class="dv">16</span></span></code></pre>
+    </div>
+    <p>That variable is used to create the font object:</p>
+    <div class="sourceCode" id="cb22">
+        <pre class="sourceCode python"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>font <span class="op">=</span> tkinter.font.Font(</span>
+        <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>    size<span class="op">=</span><span class="va">self</span>.size,</span>
+        <span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    weight<span class="op">=</span><span class="va">self</span>.weight,</span>
+        <span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>    slant<span class="op">=</span><span class="va">self</span>.style,</span>
+        <span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre>
+    </div>
+    <p>Finally, the <code>&lt;big&gt;</code> and <code>&lt;small&gt;</code> tags change the value of <code>size</code>:</p>
+    <div class="sourceCode" id="cb23">
+        <pre class="sourceCode python"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> token(<span class="va">self</span>, tok):</span>
+        <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ...</span></span>
+        <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> tok.tag <span class="op">==</span> <span class="st">&quot;small&quot;</span>:</span>
+        <span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.size <span class="op">-=</span> <span class="dv">2</span></span>
+        <span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> tok.tag <span class="op">==</span> <span class="st">&quot;/small&quot;</span>:</span>
+        <span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.size <span class="op">+=</span> <span class="dv">2</span></span>
+        <span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> tok.tag <span class="op">==</span> <span class="st">&quot;big&quot;</span>:</span>
+        <span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.size <span class="op">+=</span> <span class="dv">4</span></span>
+        <span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> tok.tag <span class="op">==</span> <span class="st">&quot;/big&quot;</span>:</span>
+        <span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.size <span class="op">-=</span> <span class="dv">4</span></span></code></pre>
+    </div>
+    <p>Try wrapping a whole paragraph in <code>&lt;small&gt;</code>, like you would a bit of fine print, and enjoy your newfound typographical freedom.</p>
+    <div class="further">
+        <p>All of <code>&lt;b&gt;</code>, <code>&lt;i&gt;</code>, <code>&lt;big&gt;</code>, and <code>&lt;small&gt;</code> date from an earlier, pre-CSS era of the web. Since CSS can now change how those tags appear, <code>&lt;b&gt;</code>, <code>&lt;i&gt;</code>, and <code>&lt;small&gt;</code> have hair-splitting <a href="https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-u-element">appearance-independent meanings</a>.</p>
+    </div>
+    <h1 id="text-of-different-sizes">Text of different sizes</h1>
+    <p>Start mixing font sizes, like <code>&lt;small&gt;a&lt;/small&gt;&lt;big&gt;A&lt;/big&gt;</code>, and you’ll quickly notice a problem with the font size code: the text is aligned along its top, not “along the line”, as if it’s hanging from a clothes line.</p>
+    <p>Let’s think through how to fix this. If the big text is moved up, it would overlap with the previous line, so the smaller text has to be moved down. That means its vertical position has to be computed later, <em>after</em> the big text passes through <code>token</code>. But since the small text comes through the loop first, we need a <em>two-pass</em> algorithm for lines of text: the first pass identifies what words go in the line and computes their <em>x</em> positions, while the second pass vertically aligns the words and computes their <em>y</em> positions.</p>
+    <p>Let’s start with phase one. Since one line contains text from many tags, we need a field on <code>Layout</code> to store the line-to-be. That field, <code>line</code>, will be a list, and <code>text</code> will add words to it instead of the display list. Entries in <code>line</code> will have <em>x</em> but not <em>y</em> positions, since <em>y</em> positions aren’t computed in the first phase:</p>
+    <div class="sourceCode" id="cb24">
+        <pre class="sourceCode python"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, tokens):</span>
+        <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ...</span></span>
+        <span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    <span class="va">self</span>.line <span class="op">=</span> []</span>
+        <span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ...</span></span>
+        <span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a></span>
+        <span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> text(<span class="va">self</span>, text):</span>
+        <span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ...</span></span>
+        <span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> word <span class="kw">in</span> text.split():</span>
+        <span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ...</span></span>
+        <span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.line.append((<span class="va">self</span>.cursor_x, word, font))</span></code></pre>
+    </div>
+    <p>The new <code>line</code> field is essentially a buffer, where words are held temporarily before they can be placed. The second phase is that buffer being flushed when we’re finished with a line:</p>
+    <div class="sourceCode" id="cb25" data-indent="12">
+        <pre class="sourceCode python"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="va">self</span>.cursor_x <span class="op">+</span> w <span class="op">&gt;</span> WIDTH <span class="op">-</span> HSTEP:</span>
+        <span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>    <span class="va">self</span>.flush()</span></code></pre>
+    </div>
+    <p>As usual with buffers, we also need to make sure the buffer is flushed once all tokens are processed:</p>
+    <div class="sourceCode" id="cb26">
+        <pre class="sourceCode python"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Layout:</span>
+        <span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, tokens):</span>
+        <span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ...</span></span>
+        <span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.flush()</span></code></pre>
+    </div>
+    <p>This new <code>flush</code> function has three responsibilities:</p>
+    <ol type="1">
+        <li>It must align the words along the line;</li>
+        <li>It must add all those words to the display list; and</li>
+        <li>It must update the <code>cursor_x</code> and <code>cursor_y</code> fields</li>
+    </ol>
+    <p>Since we want words to line up “on the line”, let’s start by computing where that line should be. That depends on the metrics for all the fonts involved:</p>
+    <div class="sourceCode" id="cb27">
+        <pre class="sourceCode python"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> flush(<span class="va">self</span>):</span>
+        <span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> <span class="va">self</span>.line: <span class="cf">return</span></span>
+        <span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>    metrics <span class="op">=</span> [font.metrics() <span class="cf">for</span> x, word, font <span class="kw">in</span> <span class="va">self</span>.line]</span></code></pre>
+    </div>
+    <p>To line up the words up “along the line”, let’s start by computing where that line should be. We need to locate the tallest word:</p>
+    <div class="sourceCode" id="cb28">
+        <pre class="sourceCode python"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>max_ascent <span class="op">=</span> <span class="bu">max</span>([metric[<span class="st">&quot;ascent&quot;</span>] <span class="cf">for</span> metric <span class="kw">in</span> metrics])</span></code></pre>
+    </div>
+    <p>The line is then <code>max_ascent</code> below <code>self.y</code>—or actually a little more to account for the leading:<span class="note-container"><span class="note">Actually actually, 20% leading doesn’t add 20% of the ascender above the ascender and 20% of the descender below the descender. Instead, it adds <a href="https://www.w3.org/TR/CSS2/visudet.html#leading">10% of the line height in both places</a>.</span></span></p>
+    <div class="sourceCode" id="cb29">
+        <pre class="sourceCode python"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>baseline <span class="op">=</span> <span class="va">self</span>.cursor_y <span class="op">+</span> <span class="fl">1.2</span> <span class="op">*</span> max_ascent</span></code></pre>
+    </div>
+    <p>Now that we know where the line is, we can place each word relative to that line and add it to the display list:</p>
+    <div class="sourceCode" id="cb30">
+        <pre class="sourceCode python"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> x, word, font <span class="kw">in</span> <span class="va">self</span>.line:</span>
+        <span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>    y <span class="op">=</span> baseline <span class="op">-</span> font.metrics(<span class="st">&quot;ascent&quot;</span>)</span>
+        <span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>    <span class="va">self</span>.display_list.append((x, y, word, font))</span></code></pre>
+    </div>
+    <p>Note how <code>y</code> starts at the baseline, and moves <em>up</em> by just enough to accomodate that word’s ascender.</p>
+    <p>Finally, <code>flush</code> must update the <code>Layout</code>’s <code>x</code>, <code>y</code>, and <code>line</code> fields. <code>x</code> and <code>line</code> are easy:</p>
+    <div class="sourceCode" id="cb31">
+        <pre class="sourceCode python"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="va">self</span>.cursor_x <span class="op">=</span> HSTEP</span>
+        <span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a><span class="va">self</span>.line <span class="op">=</span> []</span></code></pre>
+    </div>
+    <p>Meanwhile, <code>y</code> must be far enough below <code>baseline</code> to account for the deepest descender:</p>
+    <div class="sourceCode" id="cb32">
+        <pre class="sourceCode python"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>max_descent <span class="op">=</span> <span class="bu">max</span>([metric[<span class="st">&quot;descent&quot;</span>] <span class="cf">for</span> metric <span class="kw">in</span> metrics])</span>
+        <span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="va">self</span>.cursor_y <span class="op">=</span> baseline <span class="op">+</span> <span class="fl">1.2</span> <span class="op">*</span> max_descent</span></code></pre>
+    </div>
+    <p>Now all the text is aligned along the line, even when text sizes are mixed. Plus, this new <code>flush</code> function is convenient for other line breaking jobs. For example, in HTML the <code>&lt;br&gt;</code> tag<span class="note-container"><span class="note">Which is a self-closing tag, so there’s no <code>&lt;/br&gt;</code>. Many tags that <em>are</em> content, instead of annotating it, are like this. Some people like adding a final slash to self-closing tags, like <code>&lt;br/&gt;</code>, but this is not required in HTML.</span></span> ends the current line and starts a new one:</p>
+    <div class="sourceCode" id="cb33" data-indent="4">
+        <pre class="sourceCode python"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> token(<span class="va">self</span>, tok):</span>
+        <span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ...</span></span>
+        <span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> tok.tag <span class="op">==</span> <span class="st">&quot;br&quot;</span>:</span>
+        <span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.flush()</span></code></pre>
+    </div>
+    <p>Likewise, paragraphs are defined by the <code>&lt;p&gt;</code> and <code>&lt;/p&gt;</code> tags, so <code>&lt;/p&gt;</code> also ends the current line:</p>
+    <div class="sourceCode" id="cb34" data-indent="4">
+        <pre class="sourceCode python"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> token(<span class="va">self</span>, tok):</span>
+        <span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ...</span></span>
+        <span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> tok.tag <span class="op">==</span> <span class="st">&quot;/p&quot;</span>:</span>
+        <span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.flush()</span>
+        <span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.cursor_y <span class="op">+=</span> VSTEP</span></code></pre>
+    </div>
+    <p>I add a bit extra to <code>cursor_y</code> here to create a little gap between paragraphs.</p>
+    <div class="further">
+        <p>Actually, browsers support not only <em>horizontal</em> but also <a href="https://www.smashingmagazine.com/2019/08/writing-modes-layout/"><em>vertical</em> writing systems</a>, like some traditional East Asian writing styles. A particular challenge is <a href="https://www.w3.org/TR/mlreq/">Mongolian script</a>.</p>
+    </div>
+    <h1 id="summary">Summary</h1>
+    <p>The last chapter introduced a browser that laid out Chinese text. Now it does English, too:</p>
+    <ul>
+        <li>Text is laid out word-by-word</li>
+        <li>Lines are split at word boundaries</li>
+        <li>Text can be bold or italic</li>
+        <li>Text of different sizes can be mixed</li>
+    </ul>
+    <p>You can now use your browser to read an essay, a blog post, or a book!</p>
+    <form action="https://engineering.us17.list-manage.com/subscribe/post?u=adad314c44bcc60468b0657a4&amp;id=9754ef4ff3" method="post" target="_blank" id="signup" class="states">
+        <div class="s-initial">
+            <h1>Get an email every time I publish a new chapter:</h1>
+
+            <div class="field">
+                <label for="signup-name">Name </label>
+                <input type="text" name="NAME" id="signup-name" />
+            </div>
+
+            <div class="field">
+                <label for="signup-email">Email Address</label>
+                <input type="email" name="EMAIL" id="signup-email" required />
+            </div>
+
+            <div style="position: absolute; left: -5000px;" aria-hidden="true">
+                <input type="text" name="b_adad314c44bcc60468b0657a4_9754ef4ff3" tabindex="-1" />
+            </div>
+
+            <button type="submit">Subscribe</button>
+
+            <div class="checkoff">
+                <input type="checkbox" value="text" name="EMAILTYPE" id="signup-emailtype" />
+                <label for="signup-emailtype">Plain-text emails</label>
+            </div>
+        </div>
+        <div class="s-progress status">
+            Adding your email to the list...
+        </div>
+        <div class="s-success status">
+            Success! You'll receive a welcome email shortly.
+        </div>
+        <div class="s-error status">
+            Error! Something seems to have gone wrong.
+        </div>
+    </form>
+    <script src="signup.js"></script>
+
+    <h1 id="outline">Outline</h1>
+    <p>The complete set of functions, classes, and methods in our browser should look something like this:</p>
+    <div class="cmd python outline">
+        <code class=line><span class=kw>def</span> request(url)
+        </code>
+        <code class=line><span class=kw>class</span> Text:
+        <code class=line>    <span class=kw>def</span> __init__(self, text)
+        </code>
+        </code>
+        <code class=line><span class=kw>class</span> Tag:
+        <code class=line>    <span class=kw>def</span> __init__(self, tag)
+        </code>
+        </code>
+        <code class=line><span class=kw>def</span> lex(body)
+        </code>
+        <code class=line>WIDTH, HEIGHT
+        </code>
+        <code class=line>HSTEP, VSTEP
+        </code>
+        <code class=line>SCROLL_STEP
+        </code>
+        <code class=line><span class=kw>class</span> Layout:
+        <code class=line>    <span class=kw>def</span> __init__(self, tokens)
+        </code>
+        <code class=line>    <span class=kw>def</span> token(self, tok)
+        </code>
+        <code class=line>    <span class=kw>def</span> text(self, text)
+        </code>
+        <code class=line>    <span class=kw>def</span> flush(self)
+        </code>
+        </code>
+        <code class=line><span class=kw>class</span> Browser:
+        <code class=line>    <span class=kw>def</span> __init__(self)
+        </code>
+        <code class=line>    <span class=kw>def</span> load(self, url)
+        </code>
+        <code class=line>    <span class=kw>def</span> render(self)
+        </code>
+        <code class=line>    <span class=kw>def</span> scrolldown(self, e)
+        </code>
+        </code>
+        <code class=line><span class=cf>if</span> __name__ <span class=op>==</span> <span class=st>"__main__"</span>
+        </code>
+
+    </div>
+    <h1 id="exercises">Exercises</h1>
+    <p><em>Centered Text:</em> This book’s page titles are centered: find them between <code>&lt;h1 class="title"&gt;</code> and <code>&lt;/h1&gt;</code>. Make your browser center the text in these titles. Each line has to be centered individually, because different lines will have different lengths.</p>
+    <p><em>Superscripts:</em> Add support for the <code>&lt;sup&gt;</code> tag: text in this tag should be smaller (perhaps half the normal text size) and be placed so that the top of a superscript lines up with the top of a normal letter.</p>
+    <p><em>Small caps:</em> Make the <code>&lt;abbr&gt;</code> element render text in small caps, <abbr>like this</abbr>. Upper-case letters should be in a normal font, while lower-case letters should be small, capitalized, and bold.</p>
+    <p><em>Soft hyphens:</em> The soft hyphen character, written <code>\N{soft hyphen}</code> in Python, represents a place where the text renderer can, but doesn’t have to, insert a hyphen and break the word across lines. Add support for it. If a word doesn’t fit at the end of a line, check if it has soft hyphens, and if so break the word across lines. Remember that a word can have multiple soft hyphens in it, and make sure to draw a hyphen when you break a word. The word “super­cala­fraga­listic­expi­ala­do­shus” is a good test case.</p>
+    <p><em>Preformatted text:</em> Add support for the <code>&lt;pre&gt;</code> tag. Unlike normal paragraphs, text inside <code>&lt;pre&gt;</code> tags doesn’t automatically break lines, and whitespace like spaces and newlines are preserved. Use a fixed-width font like <code>Courier New</code> or <code>SFMono</code> as well. Make sure tags work normally inside <code>&lt;pre&gt;</code> tags: it should be possible to bold some text inside a <code>&lt;pre&gt;</code>.</p>
+
+
+    <nav class="links">
+        Chapter 3 of <a href="./index.html" title="Table of Contents">Web Browser Engineering</a>.
+        <a rel="prev" title="Previous chapter" href="graphics.html">&lt;</a>
+        <a rel="next" title="Next chapter" href="html.html">&gt;</a>
+    </nav>
+
+    <footer>
+        &copy; 2018&ndash;2020 <a href="https://pavpanchekha.com">Pavel Panchekha</a> &amp; <a href="https://github.com/chrishtr">Chris Harrelson</a>
+    </footer>
+
+    <script type="text/javascript" src="../feedback.js"></script>
+    <script type="text/javascript" src="../book.js"></script>
+</body>
+
+</html>

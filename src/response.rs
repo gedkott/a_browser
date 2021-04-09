@@ -153,10 +153,10 @@ fn request<'surl, 'resp>(url: &'surl str) -> Response {
 
         let _ = tls.write(http_string.as_bytes()).unwrap();
 
-        let mut response_buffer = Vec::new();
-        tls.read_to_end(&mut response_buffer).unwrap();
+        let mut response_buffer = String::new();
+        tls.read_to_string(&mut response_buffer).unwrap();
 
-        Response::new(String::from_utf8_lossy(&response_buffer).to_string())
+        Response::new(response_buffer)
     } else {
         let mut stream = TcpStream::connect((my_url.host, 80)).unwrap();
         let _ = stream.write(http_string.as_bytes()).unwrap();
